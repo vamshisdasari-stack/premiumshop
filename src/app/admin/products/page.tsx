@@ -100,7 +100,7 @@ export default function AdminProductsPage() {
               <div key={field}>
                 <label className="block text-xs text-gray-400 mb-1">{label}</label>
                 <input type={type} value={form[field as keyof typeof form] as string}
-                  onChange={e => setForm({ ...form, [field]: e.target.value })}
+                  onChange={e => setForm({ ...form, [field as string]: e.target.value })}
                   required={field !== "sku"}
                   className="w-full bg-gray-800 border border-gray-700 text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500" />
               </div>
