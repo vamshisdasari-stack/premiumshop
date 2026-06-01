@@ -76,7 +76,7 @@ export async function POST(req: NextRequest) {
     ]);
 
     // Store hashed refresh token
-    const tokenHash = hashRefreshToken(refreshToken);
+    const tokenHash = await hashRefreshToken(refreshToken);
     await prisma.refreshToken.create({
       data: {
         userId: user.id,
@@ -87,7 +87,7 @@ export async function POST(req: NextRequest) {
       },
     });
 
-    setAuthCookies(accessToken, refreshToken);
+    await setAuthCookies(accessToken, refreshToken);
     await auditLog({ userId: user.id, action: "OTP_VERIFIED", req });
 
     return ok({ id: user.id, name: user.name, email: user.email, role: user.role }, "Verification successful.");

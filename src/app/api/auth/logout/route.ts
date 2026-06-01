@@ -9,7 +9,7 @@ export async function POST(req: NextRequest) {
     if (user) {
       const refreshToken = req.cookies.get("ps_refresh")?.value;
       if (refreshToken) {
-        const tokenHash = hashRefreshToken(refreshToken);
+        const tokenHash = await hashRefreshToken(refreshToken);
         await prisma.refreshToken.updateMany({
           where: { userId: user.id, tokenHash },
           data: { revokedAt: new Date() },
@@ -17,7 +17,7 @@ export async function POST(req: NextRequest) {
       }
       await auditLog({ userId: user.id, action: "USER_LOGOUT", req });
     }
-    clearAuthCookies();
+    await clearAuthCookies();
     return ok(null, "Logged out successfully.");
   } catch (err) {
     console.error("[Logout]", err);

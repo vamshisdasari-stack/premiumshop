@@ -14,6 +14,7 @@ interface Product {
   isActive: boolean;
   isFeatured: boolean;
   category: { name: string };
+  sku: string | null;
   createdAt: string;
 }
 

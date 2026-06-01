@@ -97,8 +97,8 @@ export async function verifyRefreshTokenJwt(token: string): Promise<JwtPayload |
 // ── Cookie helpers ─────────────────────────────────────────────
 const isProd = env.NODE_ENV === "production";
 
-export function setAuthCookies(accessToken: string, refreshToken: string): void {
-  const cookieStore = cookies();
+export async function setAuthCookies(accessToken: string, refreshToken: string): Promise<void> {
+  const cookieStore = await cookies();
   cookieStore.set(ACCESS_COOKIE, accessToken, {
     httpOnly: true,
     secure: isProd,
@@ -115,8 +115,8 @@ export function setAuthCookies(accessToken: string, refreshToken: string): void 
   });
 }
 
-export function clearAuthCookies(): void {
-  const cookieStore = cookies();
+export async function clearAuthCookies(): Promise<void> {
+  const cookieStore = await cookies();
   cookieStore.delete(ACCESS_COOKIE);
   cookieStore.delete(REFRESH_COOKIE);
 }

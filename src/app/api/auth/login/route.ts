@@ -59,7 +59,7 @@ export async function POST(req: NextRequest) {
       signRefreshToken({ sub: user.id, role: user.role, sessionVersion }),
     ]);
 
-    const tokenHash = hashRefreshToken(refreshToken);
+    const tokenHash = await hashRefreshToken(refreshToken);
     await prisma.refreshToken.create({
       data: {
         userId: user.id,
@@ -70,7 +70,7 @@ export async function POST(req: NextRequest) {
       },
     });
 
-    setAuthCookies(accessToken, refreshToken);
+    await setAuthCookies(accessToken, refreshToken);
     await auditLog({ userId: user.id, action: "USER_LOGIN", req });
 
     return ok({ id: user.id, name: user.name, email: user.email, role: user.role }, "Logged in successfully.");
