@@ -1,4 +1,4 @@
-	{
+{
   "name": "premiumshop",
   "version": "1.0.0",
   "private": true,
@@ -37,10 +37,10 @@
     "jsonwebtoken": "^9.0.2",
     "lucide-react": "^0.460.0",
     "next": "14.2.18",
+    "razorpay": "^2.9.5",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "react-hot-toast": "^2.4.1",
-    "razorpay": "^2.9.5",
     "resend": "^4.0.1",
     "sanitize-html": "^2.13.1",
     "slugify": "^1.6.6",
