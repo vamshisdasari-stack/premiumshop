@@ -1,0 +1,577 @@
+================================================================================
+  PREMIUMSHOP — COMPLETE ECOMMERCE PLATFORM
+  Admin & Developer Reference Guide
+  All 6 Phases Implemented with All Critical Fixes Applied
+================================================================================
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  WHAT THIS IS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+A full-stack, production-grade ecommerce website built for:
+  • Premium clothing, accessories, and daily essentials
+  • Indian market (Razorpay payments, INR pricing, GST support)
+  • Mobile-first, premium design with smooth animations
+
+Tech Stack:
+  • Next.js 14 (App Router)         — Framework
+  • TypeScript (strict mode)         — Language
+  • Tailwind CSS + Framer Motion     — Styling & animations
+  • ShadCN UI (via Radix)            — Accessible UI components
+  • PostgreSQL + Prisma ORM          — Database
+  • JWT (HTTP-only cookies)          — Authentication
+  • bcrypt (12 rounds)               — Password hashing
+  • OTP via Resend (email)           — Email verification
+  • Razorpay                         — Payment gateway
+  • Cloudinary                       — Image storage & CDN
+  • Zod                              — Input validation everywhere
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  PROJECT STRUCTURE
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+premiumshop/
+├── prisma/
+│   └── schema.prisma              ← Full DB schema (all tables + indexes)
+├── scripts/
+│   └── create-admin.ts            ← CLI tool to create admin users
+├── src/
+│   ├── app/
+│   │   ├── (auth)/                ← Public auth pages (no header/footer)
+│   │   │   ├── login/page.tsx
+│   │   │   ├── register/page.tsx
+│   │   │   └── verify-otp/page.tsx
+│   │   ├── (store)/               ← Public storefront (with header/footer)
+│   │   │   ├── layout.tsx         ← Store header + footer + nav
+│   │   │   ├── page.tsx           ← Homepage (SSR)
+│   │   │   ├── products/
+│   │   │   │   ├── page.tsx       ← Products listing page
+│   │   │   │   └── [slug]/page.tsx ← Product detail (SSR + JSON-LD)
+│   │   │   ├── cart/page.tsx      ← Cart management
+│   │   │   ├── checkout/page.tsx  ← Checkout + Razorpay integration
+│   │   │   └── orders/page.tsx    ← My orders
+│   │   ├── admin/
+│   │   │   ├── login/page.tsx     ← Admin login (separate, no indexing)
+│   │   │   ├── layout.tsx         ← Admin sidebar layout
+│   │   │   ├── page.tsx           ← Dashboard + stats
+│   │   │   ├── products/page.tsx  ← Product management
+│   │   │   ├── categories/page.tsx ← Category management
+│   │   │   ├── orders/page.tsx    ← Order management + status updates
+│   │   │   └── reviews/page.tsx   ← Review moderation
+│   │   ├── api/
+│   │   │   ├── auth/              ← All auth endpoints
+│   │   │   ├── admin/             ← Protected admin API endpoints
+│   │   │   ├── products/          ← Public product API
+│   │   │   ├── cart/              ← Cart CRUD
+│   │   │   ├── orders/            ← Order creation + payment verification
+│   │   │   ├── webhooks/razorpay/ ← Razorpay webhook handler
+│   │   │   ├── account/           ← User-specific endpoints
+│   │   │   └── wishlist/          ← Wishlist management
+│   │   ├── layout.tsx             ← Root layout (fonts, toast)
+│   │   ├── not-found.tsx          ← 404 page
+│   │   ├── error.tsx              ← Error boundary
+│   │   ├── sitemap.ts             ← Auto-generated sitemap.xml
+│   │   └── robots.ts              ← Auto-generated robots.txt
+│   ├── components/
+│   │   └── store/
+│   │       ├── ProductsGrid.tsx   ← Server-side rendered products grid
+│   │       ├── ProductsSkeleton.tsx ← Loading skeleton
+│   │       ├── ProductFilters.tsx ← Client-side filter UI
+│   │       └── ProductActions.tsx ← Add to cart, wishlist buttons
+│   ├── lib/
+│   │   ├── prisma.ts              ← Prisma singleton (prevents hot-reload leaks)
+│   │   ├── auth.ts                ← JWT, bcrypt, OTP, session utilities
+│   │   ├── env.ts                 ← Env var validation at startup
+│   │   ├── rate-limit.ts          ← In-memory sliding window rate limiter
+│   │   ├── csrf.ts                ← HMAC-SHA256 signed CSRF tokens
+│   │   ├── cloudinary.ts          ← Image upload with server-side validation
+│   │   ├── resend.ts              ← Email templates (OTP, order, welcome)
+│   │   ├── razorpay.ts            ← Payment creation + signature verification
+│   │   ├── sanitize.ts            ← HTML sanitization (DOMPurify-style)
+│   │   ├── slugify.ts             ← SEO-friendly unique slug generation
+│   │   ├── order-number.ts        ← Human-friendly order numbers (ORD-2024-000001)
+│   │   ├── api-response.ts        ← Standardized API response helpers
+│   │   └── utils.ts               ← Shared utilities (cn, formatCurrency, etc.)
+│   ├── middleware.ts               ← Route protection (admin guard, auth guard)
+│   └── types/index.ts             ← Shared TypeScript types
+├── .env.example                   ← All required env vars documented
+├── .gitignore
+├── components.json                ← ShadCN configuration
+├── next.config.ts                 ← Security headers, image domains
+├── package.json
+├── tailwind.config.ts
+├── tsconfig.json                  ← Strict TypeScript
+└── adminReadit.txt                ← This file
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  FIRST-TIME SETUP (Step by Step)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+STEP 1 — Clone & Install
+  git clone <your-repo>
+  cd premiumshop
+  npm install    (or: yarn install / pnpm install)
+
+STEP 2 — Set up environment variables
+  cp .env.example .env.local
+  # Fill in ALL values in .env.local (see REQUIRED SERVICES section below)
+
+STEP 3 — Set up database
+  # Make sure PostgreSQL is running and DATABASE_URL is set
+  pnpm db:generate     # Generate Prisma client
+  pnpm db:migrate      # Run migrations (creates all tables)
+  # Or for quick dev: pnpm db:push (skips migration history)
+
+STEP 4 — Create first admin user
+  pnpm create-admin
+  # Follow the interactive prompts
+
+STEP 5 — Run development server
+  pnpm dev
+  # App runs at http://localhost:3000
+
+STEP 6 — Build for production
+  pnpm build
+  pnpm start
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  REQUIRED EXTERNAL SERVICES (What You Need to Get)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+1. PostgreSQL Database
+   ─────────────────
+   Options: Supabase (free tier), Neon (free tier), Railway, or self-hosted
+   URL format: postgresql://USER:PASSWORD@HOST:5432/premiumshop
+   Set as: DATABASE_URL
+
+2. Resend (Email — OTP, order confirmations)
+   ─────────────────────────────────────────
+   Sign up: https://resend.com
+   Free tier: 3,000 emails/month
+   Required: Verify your sending domain (add DNS records)
+   Get key:  Dashboard → API Keys → Create API Key
+   Set as: RESEND_API_KEY, RESEND_FROM_EMAIL, RESEND_FROM_NAME
+   ⚠️ Important: You MUST verify your sending domain. Otherwise OTP emails won't
+      deliver. Go to Resend → Domains → Add Domain → follow DNS instructions.
+   ⚠️ For SPF/DKIM/DMARC (Phase 6): Configure in your DNS after adding the domain.
+
+3. Cloudinary (Image Storage)
+   ──────────────────────────
+   Sign up: https://cloudinary.com (free tier: 25 credits/month)
+   Dashboard: https://cloudinary.com/console
+   Required: Create an upload preset set to "Signed" mode
+   Set as: CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY, CLOUDINARY_API_SECRET
+            CLOUDINARY_UPLOAD_PRESET
+
+4. Razorpay (Payments)
+   ────────────────────
+   Sign up: https://razorpay.com
+   ⚠️ For testing: Use Test Mode (keys start with rzp_test_)
+   ⚠️ For live:    Complete KYC and use Live Mode (keys start with rzp_live_)
+   Required:
+     • API Keys: Dashboard → Settings → API Keys → Generate Key
+     • Webhook:  Dashboard → Settings → Webhooks → Add Webhook
+       - URL: https://yourdomain.com/api/webhooks/razorpay
+       - Events: payment.captured, payment.failed
+       - Secret: Copy the webhook secret
+   Set as: RAZORPAY_KEY_ID, RAZORPAY_KEY_SECRET, RAZORPAY_WEBHOOK_SECRET
+            NEXT_PUBLIC_RAZORPAY_KEY_ID (same as RAZORPAY_KEY_ID, public)
+
+5. Generate Secrets (run these in terminal)
+   ─────────────────────────────────────────
+   JWT_SECRET (64 chars):
+     node -e "console.log(require('crypto').randomBytes(64).toString('hex'))"
+
+   JWT_REFRESH_SECRET (64 chars):
+     node -e "console.log(require('crypto').randomBytes(64).toString('hex'))"
+
+   OTP_PEPPER (32 chars):
+     node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
+
+   CSRF_SECRET (32 chars):
+     node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  DATABASE SCHEMA — ALL TABLES
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+User              — Customer accounts (email, passwordHash, role, lockout, session version)
+RefreshToken      — Hashed refresh tokens (for rotation + revocation)
+Otp               — Hashed OTP records (purpose, attempts, expiry)
+AuditLog          — All auth events + admin actions (never deleted)
+Category          — Product categories (slug, SEO meta, sort order)
+Product           — Products (price as Decimal, images[], tags[], soft-delete)
+ProductVariant    — Size/Color variants (separate relational table)
+WishlistItem      — User wishlists (unique per user+product)
+Address           — Delivery addresses (supports multiple, one default)
+Cart              — One cart per user
+CartItem          — Cart items (unique constraint: cart+product+variant)
+Order             — Orders (immutable totals, razorpayOrderId, expiresAt)
+OrderStatusHistory — Full audit trail of all status changes
+OrderItem         — Line items (snapshot of price at purchase time — immutable)
+Transaction       — Payment records (idempotency key, webhookVerified flag)
+Review            — Customer reviews (status: PENDING/APPROVED/REJECTED, verifiedPurchase)
+
+All tables have:
+  • Proper indexes on all FK columns and query fields
+  • created_at / updated_at timestamps
+  • Soft-delete (deletedAt) where applicable
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  API ENDPOINTS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Auth (public)
+  POST /api/auth/register         — Register (email + password + name)
+  POST /api/auth/verify-otp       — Verify email OTP
+  POST /api/auth/resend-otp       — Resend OTP (rate limited: 3/10min)
+  POST /api/auth/login            — Login (returns JWT cookies)
+  POST /api/auth/logout           — Logout (revokes refresh token)
+  GET  /api/auth/me               — Get current session user
+  POST /api/auth/admin-login      — Admin-only login (checks ADMIN/SUPER_ADMIN role)
+
+Products (public)
+  GET  /api/products              — List products (page, limit, category, q, sort, price)
+  GET  /api/products/[id]         — Get product by ID or slug
+  POST /api/products/[id]/reviews — Submit review (requires auth + verified purchase check)
+
+Cart (auth required)
+  GET   /api/cart                 — Get cart
+  POST  /api/cart                 — Add item
+  PATCH /api/cart                 — Update quantity (0 = remove)
+
+Orders (auth required)
+  POST /api/orders/create         — Create order + Razorpay order (server-side price calculation)
+  POST /api/orders/verify         — Verify payment signature (NEVER trust client)
+
+Webhooks
+  POST /api/webhooks/razorpay     — Razorpay webhook (signature verified, idempotent)
+
+Account (auth required)
+  GET  /api/account/orders        — My orders
+  GET  /api/account/addresses     — My saved addresses
+  POST /api/account/addresses     — Add new address
+  GET  /api/wishlist              — My wishlist
+  POST /api/wishlist              — Add to wishlist
+  DEL  /api/wishlist?productId=   — Remove from wishlist
+
+Admin (ADMIN/SUPER_ADMIN role required — server verified)
+  GET  /api/admin/stats           — Dashboard stats (revenue, orders, users)
+  GET  /api/admin/products        — List all products
+  POST /api/admin/products        — Create product (multipart/form-data with images)
+  GET  /api/admin/categories      — List categories
+  POST /api/admin/categories      — Create category
+  GET  /api/admin/orders          — List orders (filterable by status)
+  PATCH /api/admin/orders         — Update order status (strict state machine)
+  GET  /api/admin/reviews         — List reviews by status
+  PATCH /api/admin/reviews        — Moderate review (APPROVE/REJECT)
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  SECURITY IMPLEMENTATIONS (All Phase 1 Fixes Applied)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+✅ Session versioning (sessionVersion field — invalidate all sessions on demand)
+✅ bcrypt with 12 rounds (minimum)
+✅ OTP stored as hash (bcrypt + pepper — never plain text)
+✅ OTP expiry: 10 minutes + max 5 attempts, then auto-invalidated
+✅ HTTP-only + Secure (production) + SameSite=Lax cookies
+✅ Refresh token rotation with hash storage (tokenHash, not raw token)
+✅ Anti-enumeration: same response for existing/non-existing emails on register
+✅ DB unique constraints on email, OTP identifiers, razorpay IDs, order numbers
+✅ Account lockout: 5 failed logins → 15-minute lockout
+✅ HMAC-SHA256 signed CSRF tokens (tied to userId + expiry)
+✅ Zod validation on ALL API inputs (server-side)
+✅ Env var validation at startup (app crashes immediately with clear error)
+✅ Prisma singleton pattern (prevents connection pool exhaustion)
+✅ Auth audit logging (register, login, logout, OTP, failures)
+✅ Expired/reused OTP handled (usedAt flag, attempt limits)
+✅ Admin role NEVER trusted from client — always verified against DB
+✅ Strong password policy (uppercase, lowercase, number, special char, 8+ chars)
+✅ Standardized API responses (always {success, data/error})
+✅ Security headers in next.config.ts (X-Frame-Options, CSP-ready, HSTS prod-only)
+✅ Rate limiting: auth (5/15min), OTP resend (3/10min), API (60/min), reviews (5/hr)
+✅ DB indexes on all query fields (slug, email, categoryId, status, createdAt)
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  PAYMENT FLOW (How Razorpay Works Here)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+1. User clicks "Pay ₹XXX" on checkout
+2. POST /api/orders/create
+   → Server loads cart from DB (never trusts client prices)
+   → Calculates subtotal + shipping + 18% GST
+   → Creates Razorpay order server-side
+   → Creates DB Order with status PAYMENT_PENDING
+   → Returns razorpayOrderId + amount to frontend
+3. Frontend opens Razorpay checkout modal
+4. User completes payment in Razorpay UI
+5. Razorpay calls handler with {razorpay_order_id, razorpay_payment_id, razorpay_signature}
+6. POST /api/orders/verify
+   → Server verifies HMAC-SHA256 signature (NEVER trusts frontend)
+   → Updates order to PAID
+   → Decrements stock (in DB transaction)
+   → Clears cart
+   → Sends confirmation email (fire-and-forget)
+7. POST /api/webhooks/razorpay (from Razorpay servers)
+   → Webhook is the source of truth (idempotent)
+   → Updates transaction.webhookVerified = true
+   → Advances order to PROCESSING
+   → Handles payment.failed events
+
+Price snapshot: OrderItem stores unitPrice at time of purchase (immutable).
+If product price changes later, old orders still show correct prices.
+
+Order numbers: Human-friendly format — ORD-2024-000001
+Auto-expires:  Pending orders expire after 30 minutes (expiresAt field).
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  ADMIN PANEL GUIDE
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+URL:      /admin/login
+Access:   ADMIN or SUPER_ADMIN role only (verified server-side)
+Indexing: Blocked by robots.txt and X-Robots-Tag headers
+
+Pages:
+  Dashboard  — Revenue stats, order counts, recent orders
+  Products   — Create/view products with image upload (Cloudinary)
+  Categories — Create/manage categories
+  Orders     — View all orders, update status (strict state machine)
+  Reviews    — Moderate pending reviews (Approve / Reject)
+
+Order status machine (only valid transitions allowed):
+  PENDING → PAYMENT_PENDING → PAID → PROCESSING → SHIPPED → DELIVERED
+  Any status → CANCELLED (before delivery)
+  PAID/DELIVERED → REFUND_REQUESTED → REFUNDED
+
+To create first admin:
+  pnpm create-admin
+  (Follow interactive prompts)
+
+Admin audit log: Every admin action is written to the AuditLog table with
+  userId, action, entity, entityId, ipAddress, userAgent, timestamp.
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  EMAIL SYSTEM (Resend)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+All emails use inline HTML templates (no React Email dependency — simpler setup).
+Templates are defined in: src/lib/resend.ts
+
+Emails sent:
+  • OTP verification (registration, login, password reset)
+  • Welcome email (after email verified)
+  • Order confirmation (with itemized invoice)
+  • Order shipped notification
+
+All emails use sendEmailSafe() wrapper — email failures NEVER crash the main flow.
+
+⚠️ Important for production:
+  1. Verify your sending domain in Resend dashboard
+  2. Add SPF record:  v=spf1 include:_spf.resend.com ~all
+  3. Add DKIM record: (Resend provides the exact DNS entry)
+  4. Add DMARC record: v=DMARC1; p=quarantine; rua=mailto:dmarc@yourdomain.com
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  IMAGE UPLOAD (Cloudinary)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+All uploads are SIGNED (not unsigned presets) — prevents unauthorized uploads.
+
+Server-side validations:
+  • Allowed MIME types: JPEG, PNG, WebP, GIF only
+  • Maximum file size: 5MB per file
+  • Maximum 8 images per product
+
+Transformations applied automatically:
+  • Quality: auto (Cloudinary picks best quality/size ratio)
+  • Format: auto (serves WebP/AVIF to browsers that support it)
+  • Max dimensions: 1200×1200px (crop: limit — won't upscale)
+
+Admin can upload images when creating products via the admin panel.
+
+Setting up in Cloudinary:
+  1. Go to Settings → Upload
+  2. Create Upload Preset → Mode: Signed
+  3. Copy the preset name → set CLOUDINARY_UPLOAD_PRESET
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  REVIEW SYSTEM
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+• One review per user per product (DB unique constraint)
+• All reviews go to PENDING → admin must approve
+• Verified Purchase badge: auto-detected (has a DELIVERED order for this product)
+• Review body is sanitized with sanitize-html before storage
+• Rate limited: 5 reviews per hour per IP
+• Aggregate ratings calculated dynamically (only APPROVED reviews)
+• Admin review moderation at /admin/reviews
+• Suspicious patterns: Track via AuditLog + ReviewStatus controls
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  SEO & PERFORMANCE
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+• SEO-friendly slugs: auto-generated (e.g., "mens-cotton-tshirt-blue")
+• Unique slug enforcement: numeric suffix appended if duplicate (slug-2, slug-3)
+• Meta tags: title, description, OpenGraph on all product pages
+• JSON-LD structured data on product pages (Product + AggregateRating schema)
+• Sitemap: Auto-generated at /sitemap.xml
+• Robots.txt: /robots.txt (blocks /admin, /api, /account from indexing)
+• ISR caching: Product listing (60s revalidation), Product detail (300s)
+• Next.js Image: automatic WebP/AVIF conversion, lazy loading, sizes attribute
+• Skeleton loaders for all async content
+• Admin pages blocked: X-Robots-Tag: noindex header
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  DEPLOYMENT CHECKLIST (Production)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Before going live, verify each item:
+
+  Environment Variables
+  [ ] All env vars in .env.example are set in production
+  [ ] JWT_SECRET and JWT_REFRESH_SECRET are 64-char random hex strings
+  [ ] OTP_PEPPER and CSRF_SECRET are strong random secrets
+  [ ] NODE_ENV=production
+  [ ] NEXT_PUBLIC_APP_URL is your actual domain (https://yourdomain.com)
+  [ ] RAZORPAY_KEY_ID and NEXT_PUBLIC_RAZORPAY_KEY_ID are Live mode keys
+      (NOT test keys starting with rzp_test_)
+
+  Database
+  [ ] Production DATABASE_URL points to your production PostgreSQL
+  [ ] Migrations applied: pnpm db:migrate (in production environment)
+  [ ] At least one admin user created: pnpm create-admin
+  [ ] DB connection pooling configured (use PgBouncer for serverless)
+
+  Payments
+  [ ] Razorpay is in LIVE mode
+  [ ] Webhook URL registered: https://yourdomain.com/api/webhooks/razorpay
+  [ ] Webhook events enabled: payment.captured + payment.failed
+  [ ] RAZORPAY_WEBHOOK_SECRET copied from Razorpay dashboard exactly
+
+  Email
+  [ ] Resend domain verified (DNS records added)
+  [ ] SPF/DKIM/DMARC DNS records added
+  [ ] Test email delivery working
+
+  Cloudinary
+  [ ] Upload preset is Signed mode
+  [ ] Test image upload works from admin panel
+
+  Security
+  [ ] HTTPS is enforced (redirect all HTTP to HTTPS)
+  [ ] All "REPLACE_WITH_*" placeholder values removed from env
+  [ ] Admin URL obscured (consider /admin → /yoursecretadmin if needed)
+  [ ] Error monitoring (Sentry) set up
+
+  Hosting options:
+  • Vercel (recommended for Next.js — zero config)
+  • Railway (supports both Next.js + PostgreSQL)
+  • Render.com
+  • AWS/GCP with Docker
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  INSTALL SHADCN COMPONENTS (After Setup)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+The project is configured for ShadCN. Add components as needed:
+
+  npx shadcn@latest add button
+  npx shadcn@latest add input
+  npx shadcn@latest add label
+  npx shadcn@latest add toast
+  npx shadcn@latest add dialog
+  npx shadcn@latest add select
+  npx shadcn@latest add badge
+  npx shadcn@latest add tabs
+
+All ShadCN components go to src/components/ui/
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  USEFUL COMMANDS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  pnpm dev              — Start development server (http://localhost:3000)
+  pnpm build            — Build for production
+  pnpm start            — Start production server
+  pnpm typecheck        — Run TypeScript type checking
+  pnpm lint             — Run ESLint
+  pnpm db:generate      — Regenerate Prisma client (after schema changes)
+  pnpm db:migrate       — Run database migrations
+  pnpm db:push          — Push schema directly (dev only, no migration history)
+  pnpm db:studio        — Open Prisma Studio (visual DB browser)
+  pnpm create-admin     — Create an admin user interactively
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  WHAT ELSE IS STILL NEEDED (NOT in this zip)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+These features are architecturally prepared but need additional work:
+
+  [ ] Coupon/discount code system (DB has discountAmount field)
+  [ ] Product variant editing in admin (schema supports it)
+  [ ] Password reset flow (schema has passwordResetToken field)
+  [ ] Redis-based rate limiting (replace in-memory for multi-instance)
+  [ ] Background job queue for emails (use BullMQ or similar)
+  [ ] Admin product image management (edit/delete images)
+  [ ] Customer-facing order tracking page with timeline
+  [ ] Refund request handling (schema ready: REFUND_REQUESTED → REFUNDED)
+  [ ] Invoice PDF generation
+  [ ] SMS notifications (optional: via Twilio / MSG91)
+  [ ] Search with Elasticsearch or Algolia for large catalogs
+  [ ] Social login (Google/GitHub OAuth)
+  [ ] Multi-language / multi-currency support
+  [ ] Analytics dashboard (Revenue charts over time)
+  [ ] Product stock alerts (email admin when stock hits lowStockAlert)
+  [ ] Bulk product import (CSV)
+  [ ] Nonce-based Content Security Policy (Phase 6 fix #1)
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  ARCHITECTURE DECISIONS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+1. Next.js App Router with Route Groups
+   (auth) and (store) are route groups — they share layout independently.
+   Admin has its own layout with sidebar. No conflicting layouts.
+
+2. Server Components for data fetching, Client Components for interactivity
+   Product pages are SSR for SEO. Cart/Checkout are client-side for UX.
+
+3. JWT Access Token (15min) + Refresh Token (7 days) — not session cookies
+   Access token in `ps_access` cookie, refresh in `ps_refresh` cookie (path-restricted).
+   sessionVersion in JWT is verified against DB on every request.
+
+4. Prices stored as Prisma Decimal, serialized as Number in API responses
+   Never store prices as floats. DB Decimal(10,2) prevents rounding errors.
+
+5. Webhook is the source of truth for payment status
+   Client verification is a fast path. Webhook confirms and is idempotent.
+
+6. Soft delete (deletedAt) on User and Product
+   Orders reference historical products. Products are never hard-deleted.
+
+7. OrderItem snapshots price at purchase time
+   unitPrice in OrderItem is set once and never updated. Historic correctness.
+
+================================================================================
+  Good luck with PremiumShop! For questions, refer to the code comments
+  in each file — they explain the "why" behind each security decision.
+================================================================================

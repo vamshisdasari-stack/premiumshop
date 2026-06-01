@@ -1,0 +1,417 @@
+// ============================================================
+// PremiumShop — Prisma Schema
+// All tables include proper indexes, relations, and soft-delete
+// ============================================================
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ── ENUMS ────────────────────────────────────────────────────
+
+enum Role {
+  USER
+  ADMIN
+  SUPER_ADMIN
+}
+
+enum OrderStatus {
+  PENDING
+  PAYMENT_PENDING
+  PAID
+  PROCESSING
+  SHIPPED
+  DELIVERED
+  CANCELLED
+  REFUND_REQUESTED
+  REFUNDED
+}
+
+enum PaymentStatus {
+  PENDING
+  CREATED
+  AUTHORIZED
+  CAPTURED
+  FAILED
+  REFUNDED
+}
+
+enum ReviewStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum OtpPurpose {
+  REGISTRATION
+  LOGIN
+  PASSWORD_RESET
+}
+
+// ── USER ─────────────────────────────────────────────────────
+
+model User {
+  id                String    @id @default(cuid())
+  email             String    @unique
+  phone             String?
+  name              String
+  passwordHash      String
+  role              Role      @default(USER)
+  emailVerified     Boolean   @default(false)
+  isActive          Boolean   @default(true)
+  sessionVersion    Int       @default(0)   // Increment to invalidate all sessions
+  failedLoginCount  Int       @default(0)
+  lockedUntil       DateTime?
+  passwordResetToken String?  @unique
+  passwordResetExpiry DateTime?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+  deletedAt         DateTime?
+
+  otps        Otp[]
+  addresses   Address[]
+  cart        Cart?
+  orders      Order[]
+  reviews     Review[]
+  wishlist    WishlistItem[]
+  auditLogs   AuditLog[]
+  refreshTokens RefreshToken[]
+
+  @@index([email])
+  @@index([isActive])
+  @@index([deletedAt])
+}
+
+// ── REFRESH TOKEN ─────────────────────────────────────────────
+
+model RefreshToken {
+  id        String   @id @default(cuid())
+  userId    String
+  tokenHash String   @unique   // Store hashed token only
+  expiresAt DateTime
+  revokedAt DateTime?
+  createdAt DateTime @default(now())
+  userAgent String?
+  ipAddress String?
+
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([expiresAt])
+}
+
+// ── OTP ──────────────────────────────────────────────────────
+
+model Otp {
+  id          String     @id @default(cuid())
+  userId      String
+  otpHash     String     // Hashed OTP (never store plain)
+  purpose     OtpPurpose
+  attempts    Int        @default(0)
+  maxAttempts Int        @default(5)
+  expiresAt   DateTime
+  usedAt      DateTime?
+  createdAt   DateTime   @default(now())
+
+  user        User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, purpose])
+  @@index([expiresAt])
+}
+
+// ── AUDIT LOG ─────────────────────────────────────────────────
+
+model AuditLog {
+  id        String   @id @default(cuid())
+  userId    String?
+  action    String
+  entity    String?
+  entityId  String?
+  metadata  Json?
+  ipAddress String?
+  userAgent String?
+  createdAt DateTime @default(now())
+
+  user      User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([userId])
+  @@index([action])
+  @@index([createdAt])
+}
+
+// ── CATEGORY ─────────────────────────────────────────────────
+
+model Category {
+  id          String    @id @default(cuid())
+  name        String
+  slug        String    @unique
+  description String?
+  image       String?
+  metaTitle   String?
+  metaDesc    String?
+  isActive    Boolean   @default(true)
+  sortOrder   Int       @default(0)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  deletedAt   DateTime?
+
+  products    Product[]
+
+  @@index([slug])
+  @@index([isActive])
+}
+
+// ── PRODUCT ──────────────────────────────────────────────────
+
+model Product {
+  id            String    @id @default(cuid())
+  name          String
+  slug          String    @unique
+  description   String    @db.Text
+  descriptionHtml String? @db.Text  // Sanitized HTML
+  price         Decimal   @db.Decimal(10, 2)
+  comparePrice  Decimal?  @db.Decimal(10, 2)
+  sku           String?   @unique
+  stock         Int       @default(0)
+  lowStockAlert Int       @default(5)
+  images        String[]
+  categoryId    String
+  isFeatured    Boolean   @default(false)
+  isActive      Boolean   @default(true)
+  metaTitle     String?
+  metaDesc      String?
+  tags          String[]
+  weight        Decimal?  @db.Decimal(8, 3)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  deletedAt     DateTime?
+
+  category      Category  @relation(fields: [categoryId], references: [id])
+  variants      ProductVariant[]
+  cartItems     CartItem[]
+  orderItems    OrderItem[]
+  reviews       Review[]
+  wishlist      WishlistItem[]
+
+  @@index([slug])
+  @@index([categoryId])
+  @@index([isFeatured])
+  @@index([isActive])
+  @@index([price])
+  @@index([stock])
+  @@index([deletedAt])
+  @@index([createdAt])
+}
+
+// ── PRODUCT VARIANT ──────────────────────────────────────────
+
+model ProductVariant {
+  id         String   @id @default(cuid())
+  productId  String
+  name       String   // e.g. "Size", "Color"
+  value      String   // e.g. "XL", "Red"
+  priceAdj   Decimal  @default(0) @db.Decimal(10, 2)
+  stock      Int      @default(0)
+  sku        String?  @unique
+  createdAt  DateTime @default(now())
+
+  product    Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  orderItems OrderItem[]
+  cartItems  CartItem[]
+
+  @@index([productId])
+}
+
+// ── WISHLIST ─────────────────────────────────────────────────
+
+model WishlistItem {
+  id        String   @id @default(cuid())
+  userId    String
+  productId String
+  createdAt DateTime @default(now())
+
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, productId])
+  @@index([userId])
+}
+
+// ── ADDRESS ──────────────────────────────────────────────────
+
+model Address {
+  id         String   @id @default(cuid())
+  userId     String
+  name       String
+  phone      String
+  line1      String
+  line2      String?
+  city       String
+  state      String
+  pincode    String
+  country    String   @default("India")
+  isDefault  Boolean  @default(false)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  orders     Order[]
+
+  @@index([userId])
+}
+
+// ── CART ─────────────────────────────────────────────────────
+
+model Cart {
+  id        String     @id @default(cuid())
+  userId    String     @unique
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+
+  user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  items     CartItem[]
+}
+
+model CartItem {
+  id        String          @id @default(cuid())
+  cartId    String
+  productId String
+  variantId String?
+  quantity  Int
+  createdAt DateTime        @default(now())
+  updatedAt DateTime        @updatedAt
+
+  cart      Cart            @relation(fields: [cartId], references: [id], onDelete: Cascade)
+  product   Product         @relation(fields: [productId], references: [id])
+  variant   ProductVariant? @relation(fields: [variantId], references: [id])
+
+  @@unique([cartId, productId, variantId])
+  @@index([cartId])
+  @@index([productId])
+}
+
+// ── ORDER ────────────────────────────────────────────────────
+
+model Order {
+  id               String       @id @default(cuid())
+  orderNumber      String       @unique  // Human-friendly: ORD-2024-000001
+  userId           String
+  addressId        String?
+  status           OrderStatus  @default(PENDING)
+  subtotal         Decimal      @db.Decimal(10, 2)
+  shippingCost     Decimal      @default(0) @db.Decimal(10, 2)
+  taxAmount        Decimal      @default(0) @db.Decimal(10, 2)
+  discountAmount   Decimal      @default(0) @db.Decimal(10, 2)
+  total            Decimal      @db.Decimal(10, 2)
+  notes            String?
+  razorpayOrderId  String?      @unique
+  expiresAt        DateTime?    // For auto-expiring pending orders
+  createdAt        DateTime     @default(now())
+  updatedAt        DateTime     @updatedAt
+
+  user             User         @relation(fields: [userId], references: [id])
+  address          Address?     @relation(fields: [addressId], references: [id])
+  items            OrderItem[]
+  transaction      Transaction?
+  statusHistory    OrderStatusHistory[]
+
+  @@index([userId])
+  @@index([status])
+  @@index([orderNumber])
+  @@index([razorpayOrderId])
+  @@index([createdAt])
+  @@index([expiresAt])
+}
+
+// ── ORDER STATUS HISTORY ──────────────────────────────────────
+
+model OrderStatusHistory {
+  id        String      @id @default(cuid())
+  orderId   String
+  status    OrderStatus
+  note      String?
+  createdAt DateTime    @default(now())
+  createdBy String?     // userId of admin who changed it
+
+  order     Order       @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  @@index([orderId])
+}
+
+// ── ORDER ITEM ───────────────────────────────────────────────
+
+model OrderItem {
+  id           String          @id @default(cuid())
+  orderId      String
+  productId    String
+  variantId    String?
+  productName  String          // Snapshot at time of purchase
+  variantLabel String?
+  imageUrl     String?
+  quantity     Int
+  unitPrice    Decimal         @db.Decimal(10, 2)  // Snapshot — immutable
+  totalPrice   Decimal         @db.Decimal(10, 2)
+
+  order        Order           @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  product      Product         @relation(fields: [productId], references: [id])
+  variant      ProductVariant? @relation(fields: [variantId], references: [id])
+
+  @@index([orderId])
+  @@index([productId])
+}
+
+// ── TRANSACTION ──────────────────────────────────────────────
+
+model Transaction {
+  id                 String        @id @default(cuid())
+  orderId            String        @unique
+  razorpayOrderId    String        @unique
+  razorpayPaymentId  String?       @unique
+  razorpaySignature  String?
+  amount             Decimal       @db.Decimal(10, 2)
+  currency           String        @default("INR")
+  status             PaymentStatus @default(PENDING)
+  failureReason      String?
+  webhookVerified    Boolean       @default(false)
+  idempotencyKey     String        @unique  // Prevent duplicate processing
+  metadata           Json?
+  createdAt          DateTime      @default(now())
+  updatedAt          DateTime      @updatedAt
+
+  order              Order         @relation(fields: [orderId], references: [id])
+
+  @@index([razorpayOrderId])
+  @@index([razorpayPaymentId])
+  @@index([status])
+}
+
+// ── REVIEW ───────────────────────────────────────────────────
+
+model Review {
+  id               String       @id @default(cuid())
+  userId           String
+  productId        String
+  orderId          String?      // Must have a delivered order for this product
+  rating           Int          // 1–5
+  title            String?
+  body             String       @db.Text
+  status           ReviewStatus @default(PENDING)
+  isVerifiedPurchase Boolean    @default(false)
+  helpfulCount     Int          @default(0)
+  moderationNote   String?
+  createdAt        DateTime     @default(now())
+  updatedAt        DateTime     @updatedAt
+
+  user             User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  product          Product      @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, productId])  // One review per user per product
+  @@index([productId, status])
+  @@index([userId])
+  @@index([createdAt])
+}
