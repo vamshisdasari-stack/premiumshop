@@ -1,3 +1,4 @@
+export const dynamic = 'force-dynamic'
 import { NextRequest } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { ok, serverError } from "@/lib/api-response";
@@ -52,3 +53,4 @@ export async function GET(_req: NextRequest) {
     return serverError();
   }
 }
+
