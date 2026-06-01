@@ -185,7 +185,7 @@ export default function CheckoutPage() {
                   <div key={field} className={field === "line1" ? "sm:col-span-2" : ""}>
                     <label className="block text-xs text-gray-500 mb-1">{label}</label>
                     <input value={newAddr[field as keyof typeof newAddr]}
-                      onChange={e => setNewAddr({ ...newAddr, [field]: e.target.value })}
+                      onChange={e => setNewAddr({ ...newAddr, [field as string]: e.target.value })}
                       required={field !== "line2"}
                       className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400" />
                   </div>
